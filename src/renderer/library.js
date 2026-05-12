@@ -4,8 +4,9 @@
   const LibraryPage = {
     elements: {},
     items: [],
-    selected: null,
     savedHandler: null,
+    trackChangeHandler: null,
+    stateChangeHandler: null,
 
     mount(container) {
       const tpl = document.getElementById('tpl-library');
@@ -17,33 +18,28 @@
         list: node.querySelector('.recording-list'),
         empty: node.querySelector('.empty-state'),
         refresh: node.querySelector('.refresh-btn'),
-        playerPane: node.querySelector('.player-pane'),
-        playerTitle: node.querySelector('.player-title'),
-        playerMeta: node.querySelector('.player-meta'),
-        player: node.querySelector('.player'),
-        closePlayer: node.querySelector('.close-player'),
       };
 
       this.elements.refresh.addEventListener('click', () => this.refresh());
-      this.elements.closePlayer.addEventListener('click', () => this.closePlayer());
 
       this.savedHandler = () => this.refresh();
       window.addEventListener('recording-saved', this.savedHandler);
+
+      this.trackChangeHandler = () => this.render();
+      this.stateChangeHandler = () => this.render();
+      window.addEventListener('player:track-change', this.trackChangeHandler);
+      window.addEventListener('player:state-change', this.stateChangeHandler);
 
       this.refresh();
     },
 
     unmount() {
-      if (this.savedHandler) {
-        window.removeEventListener('recording-saved', this.savedHandler);
-        this.savedHandler = null;
-      }
-      if (this.elements.player) {
-        this.elements.player.pause();
-        this.elements.player.removeAttribute('src');
-        this.elements.player.load();
-      }
-      this.selected = null;
+      if (this.savedHandler) window.removeEventListener('recording-saved', this.savedHandler);
+      if (this.trackChangeHandler) window.removeEventListener('player:track-change', this.trackChangeHandler);
+      if (this.stateChangeHandler) window.removeEventListener('player:state-change', this.stateChangeHandler);
+      this.savedHandler = null;
+      this.trackChangeHandler = null;
+      this.stateChangeHandler = null;
     },
 
     async refresh() {
@@ -71,17 +67,20 @@
 
     formatDate(iso) {
       try {
-        const d = new Date(iso);
-        return d.toLocaleString(undefined, {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
+        return new Date(iso).toLocaleString(undefined, {
+          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
         });
       } catch {
         return iso;
       }
+    },
+
+    playButtonSVG() {
+      return '<svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>';
+    },
+
+    eqGlyph() {
+      return '<span class="eq-glyph" aria-hidden="true"><i></i><i></i><i></i></span>';
     },
 
     render() {
@@ -94,36 +93,50 @@
       }
       empty.hidden = true;
 
-      for (const item of this.items) {
+      const currentFile = window.Player.currentFilename();
+      const isPlaying = window.Player.isPlaying();
+
+      this.items.forEach((item, idx) => {
         const li = document.createElement('li');
         li.className = 'recording-row';
-        if (this.selected === item.filename) li.classList.add('active');
         li.dataset.filename = item.filename;
+        const isCurrent = item.filename === currentFile;
+        if (isCurrent) li.classList.add('is-current');
+        if (isCurrent && isPlaying) li.classList.add('is-playing');
 
+        const playBtn = document.createElement('button');
+        playBtn.type = 'button';
+        playBtn.className = 'row-play';
+        playBtn.title = isCurrent && isPlaying ? 'Pause' : 'Play';
+        playBtn.innerHTML = isCurrent && isPlaying ? this.eqGlyph() : this.playButtonSVG();
+        playBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.handlePlayClick(item, idx);
+        });
+
+        const info = document.createElement('div');
+        info.className = 'row-info';
         const name = document.createElement('div');
-        name.className = 'col-name';
-        name.textContent = item.filename;
+        name.className = 'row-title';
+        name.textContent = item.filename.replace(/\.webm$/, '');
         name.title = item.filename;
+        const sub = document.createElement('div');
+        sub.className = 'row-sub';
+        sub.textContent = `${this.formatDate(item.createdAt)} • ${this.formatBytes(item.sizeBytes)}`;
+        info.appendChild(name);
+        info.appendChild(sub);
 
         const dur = document.createElement('div');
-        dur.className = 'col-meta';
+        dur.className = 'row-duration';
         dur.textContent = this.formatDuration(item.durationMs);
-
-        const size = document.createElement('div');
-        size.className = 'col-meta';
-        size.textContent = this.formatBytes(item.sizeBytes);
-
-        const date = document.createElement('div');
-        date.className = 'col-meta';
-        date.textContent = this.formatDate(item.createdAt);
 
         const actions = document.createElement('div');
         actions.className = 'row-actions';
         const revealBtn = document.createElement('button');
         revealBtn.type = 'button';
         revealBtn.className = 'icon-btn';
-        revealBtn.textContent = 'Reveal';
         revealBtn.title = 'Reveal in Finder';
+        revealBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg>';
         revealBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           window.recorderAPI.reveal(item.filename);
@@ -131,13 +144,14 @@
         const delBtn = document.createElement('button');
         delBtn.type = 'button';
         delBtn.className = 'icon-btn danger';
-        delBtn.textContent = 'Delete';
+        delBtn.title = 'Delete';
+        delBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>';
         delBtn.addEventListener('click', async (e) => {
           e.stopPropagation();
           if (!confirm(`Delete "${item.filename}"? This cannot be undone.`)) return;
           try {
             await window.recorderAPI.delete(item.filename);
-            if (this.selected === item.filename) this.closePlayer();
+            window.Player.removeFromQueue(item.filename);
             await this.refresh();
           } catch (err) {
             console.error('delete failed:', err);
@@ -147,37 +161,24 @@
         actions.appendChild(revealBtn);
         actions.appendChild(delBtn);
 
-        li.appendChild(name);
+        li.appendChild(playBtn);
+        li.appendChild(info);
         li.appendChild(dur);
-        li.appendChild(size);
-        li.appendChild(date);
         li.appendChild(actions);
 
-        li.addEventListener('click', () => this.play(item));
+        li.addEventListener('click', () => this.handlePlayClick(item, idx));
 
         list.appendChild(li);
+      });
+    },
+
+    handlePlayClick(item, idx) {
+      const currentFile = window.Player.currentFilename();
+      if (item.filename === currentFile) {
+        window.Player.togglePlay();
+      } else {
+        window.Player.playFromList(this.items, idx);
       }
-    },
-
-    play(item) {
-      this.selected = item.filename;
-      const { playerPane, playerTitle, playerMeta, player } = this.elements;
-      playerPane.hidden = false;
-      playerTitle.textContent = item.filename;
-      playerMeta.textContent = `${this.formatDuration(item.durationMs)} - ${this.formatBytes(item.sizeBytes)} - ${this.formatDate(item.createdAt)}`;
-      player.src = window.recorderAPI.fileUrl(item.filename);
-      player.play().catch((err) => console.warn('autoplay blocked or failed:', err));
-      this.render();
-    },
-
-    closePlayer() {
-      const { playerPane, player } = this.elements;
-      player.pause();
-      player.removeAttribute('src');
-      player.load();
-      playerPane.hidden = true;
-      this.selected = null;
-      this.render();
     },
   };
 

@@ -18,6 +18,40 @@
 
     <main id="view" class="view"></main>
 
+    <footer id="player-bar" class="player-bar" hidden>
+      <div class="pb-track">
+        <div class="pb-art"><div class="pb-art-glyph"></div></div>
+        <div class="pb-info">
+          <div class="pb-title"></div>
+          <div class="pb-meta"></div>
+        </div>
+      </div>
+      <div class="pb-controls">
+        <button class="pb-icon pb-prev" type="button" aria-label="Previous">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M6 6h2v12H6zM9.5 12l8.5 6V6z"/></svg>
+        </button>
+        <button class="pb-play" type="button" data-state="paused" aria-label="Play">
+          <svg class="pb-play-icon" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
+          <svg class="pb-pause-icon" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+        </button>
+        <button class="pb-icon pb-next" type="button" aria-label="Next">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M6 6v12l8.5-6L6 6zM16 6h2v12h-2z"/></svg>
+        </button>
+      </div>
+      <div class="pb-progress">
+        <span class="pb-elapsed">0:00</span>
+        <div class="pb-scrub"><div class="pb-scrub-fill"></div></div>
+        <span class="pb-total">0:00</span>
+      </div>
+      <div class="pb-volume">
+        <span class="pb-vol-icon" data-muted="false">
+          <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4.03v8.05A4.5 4.5 0 0 0 16.5 12zM14 3.23v2.06A7 7 0 0 1 14 18.71v2.06A9 9 0 0 0 14 3.23z"/></svg>
+        </span>
+        <div class="pb-vol"><div class="pb-vol-fill"></div></div>
+      </div>
+      <audio preload="metadata"></audio>
+    </footer>
+
     <template id="tpl-recording">
       <section class="page page-recording">
         <div class="recorder-card">
@@ -46,20 +80,15 @@
         <div class="library-body">
           <ul class="recording-list" aria-label="Recordings"></ul>
           <div class="empty-state" hidden>
-            No recordings yet &mdash; start one on the Recording tab.
+            <div class="empty-state-glyph">♪</div>
+            <div class="empty-state-text">No recordings yet</div>
+            <div class="empty-state-sub">Head to the Recording tab to capture system audio.</div>
           </div>
         </div>
-        <aside class="player-pane" hidden>
-          <div class="player-header">
-            <div class="player-title"></div>
-            <button class="close-player" type="button" aria-label="Close player">x</button>
-          </div>
-          <audio class="player" controls preload="metadata"></audio>
-          <div class="player-meta"></div>
-        </aside>
       </section>
     </template>
 
+    <script src="player.js"></script>
     <script src="recording.js"></script>
     <script src="library.js"></script>
     <script src="app.js"></script>
