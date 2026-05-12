@@ -1,6 +1,6 @@
 'use strict';
 
-const { app, BrowserWindow, ipcMain, protocol, shell, net } = require('electron');
+const { app, BrowserWindow, ipcMain, protocol, shell, net, session, desktopCapturer } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const fsp = require('fs/promises');
@@ -193,9 +193,24 @@ function createWindow() {
   });
 }
 
+function setupDisplayMediaHandler() {
+  session.defaultSession.setDisplayMediaRequestHandler((_request, callback) => {
+    desktopCapturer
+      .getSources({ types: ['screen'] })
+      .then((sources) => {
+        callback({ video: sources[0], audio: 'loopback' });
+      })
+      .catch((err) => {
+        console.error('desktopCapturer error:', err);
+        callback({});
+      });
+  });
+}
+
 app.whenReady().then(() => {
   ensureDir();
   registerRecProtocol();
+  setupDisplayMediaHandler();
   createWindow();
 
   app.on('activate', () => {

@@ -5,3 +5,4 @@ out/
 .DS_Store
 .tmp-*.js
 .tmp-*.json
+.cc-bot/
