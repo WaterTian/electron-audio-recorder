@@ -1,0 +1,45 @@
+{
+  "name": "electron-audio-recorder",
+  "version": "1.0.0",
+  "description": "macOS desktop app to record system audio and store recordings locally",
+  "main": "src/main/main.js",
+  "author": "Electron Audio Recorder",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "lint": "node --check src/main/main.js && node --check src/main/preload.js",
+    "pack": "electron-builder --mac --x64 --arm64 --dir",
+    "dist": "electron-builder --mac"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.example.electron-audio-recorder",
+    "productName": "Electron Audio Recorder",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] },
+        { "target": "zip", "arch": ["x64", "arm64"] }
+      ],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "entitlements.mac.plist",
+      "entitlementsInherit": "entitlements.mac.plist",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Required by Chromium to capture system audio via screen sharing.",
+        "NSCameraUsageDescription": "Required by Chromium for getDisplayMedia even when only audio is captured.",
+        "NSScreenCaptureUsageDescription": "Required to capture system audio via the macOS screen-share dialog."
+      }
+    }
+  }
+}
