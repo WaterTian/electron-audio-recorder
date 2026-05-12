@@ -43,8 +43,28 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMMIT_SHA: ${{ github.sha }}
         run: |
-          TAG="build-${{ github.run_number }}-$(echo $COMMIT_SHA | cut -c1-7)"
-          cat > /tmp/release-notes.md <<'EOF'
+          SHORT_SHA=$(echo $COMMIT_SHA | cut -c1-7)
+          APP_VERSION=$(node -p "require('./package.json').version")
+          COMMIT_SUBJECT=$(git log -1 --pretty=format:%s)
+          BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M UTC")
+          TAG="v${APP_VERSION}-build${{ github.run_number }}-${SHORT_SHA}"
+
+          cat > /tmp/release-notes.md <<HEADER
+          ## 🎵 Electron Audio Recorder v${APP_VERSION}
+
+          | | |
+          |---|---|
+          | **Build** | #${{ github.run_number }} |
+          | **Commit** | \`${SHORT_SHA}\` — ${COMMIT_SUBJECT} |
+          | **Built** | ${BUILD_DATE} |
+          | **Targets** | macOS Apple Silicon (arm64) + Intel (x64) |
+          | **Signing** | ❌ Unsigned — see install instructions below |
+
+          ---
+
+          HEADER
+
+          cat >> /tmp/release-notes.md <<'EOF'
           > [!IMPORTANT]
           > ## 🛑 Read this before installing
           >
@@ -85,8 +105,8 @@ jobs:
           ---
           EOF
           echo "" >> /tmp/release-notes.md
-          echo "Auto-built unsigned x64 + arm64 from commit $COMMIT_SHA." >> /tmp/release-notes.md
+          echo "_Auto-built on macos-latest from commit \`${COMMIT_SHA}\`._" >> /tmp/release-notes.md
           gh release create "$TAG" \
-            --title "Build #${{ github.run_number }}" \
+            --title "v${APP_VERSION} · Build #${{ github.run_number }}" \
             --notes-file /tmp/release-notes.md \
             dist/*.dmg dist/*.zip
