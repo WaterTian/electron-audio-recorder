@@ -55,7 +55,32 @@ electron-audio-recorder/
         └── types.js         # JSDoc shared types
 ```
 
-## Install + run
+## Installing the prebuilt .dmg (unsigned)
+
+Each push to `main` produces an unsigned macOS DMG on the
+[Releases page](https://github.com/WaterTian/electron-audio-recorder/releases).
+Because the build is not signed with an Apple Developer ID, macOS will show
+**"Electron Audio Recorder.app is damaged and can't be opened"** the first
+time you try to launch it. Right-click → Open *does not* bypass this on
+macOS Sequoia.
+
+**Before mounting the .dmg**, run this in Terminal:
+
+```bash
+xattr -d com.apple.quarantine ~/Downloads/Electron.Audio.Recorder-1.0.0-arm64.dmg
+```
+
+(Use the `-x64` filename for Intel Macs.) Then double-click the .dmg, drag
+the app into Applications, and open it normally.
+
+If you already copied the app into `/Applications` and hit the error, you
+can fix it after the fact:
+
+```bash
+xattr -cr "/Applications/Electron Audio Recorder.app"
+```
+
+## Build + run from source
 
 Requires **Node.js 20+** and macOS 14 (Sonoma) or newer for system-audio
 capture. The repo can be installed and built on Windows/Linux too, but

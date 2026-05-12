@@ -47,5 +47,21 @@ jobs:
             --title "Build #${{ github.run_number }}" \
             --notes "Auto-built unsigned macOS .dmg + .zip from commit ${{ github.sha }}.
 
-          ⚠️ Unsigned: on first launch macOS will block it. Right-click the .app → Open → Open in the dialog. Or run \`xattr -d com.apple.quarantine 'Electron Audio Recorder.app'\`." \
+          ## ⚠️ Install instructions (read first!)
+
+          This build is **unsigned**. macOS Sonoma/Sequoia will show *\"Electron Audio Recorder.app is damaged and can't be opened\"* and refuse to launch it. Right-click → Open no longer bypasses this on Sequoia.
+
+          **Before installing**, open Terminal and run:
+
+          \`\`\`
+          xattr -d com.apple.quarantine ~/Downloads/Electron.Audio.Recorder-1.0.0-arm64.dmg
+          \`\`\`
+
+          (or use the x64 filename for Intel Macs.) Then double-click the .dmg, drag the app into Applications, and open it normally.
+
+          If you already copied the app to /Applications and saw the error, run instead:
+
+          \`\`\`
+          xattr -cr \"/Applications/Electron Audio Recorder.app\"
+          \`\`\`" \
             dist/*.dmg dist/*.zip
