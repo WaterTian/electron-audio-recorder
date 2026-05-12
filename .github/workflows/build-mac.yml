@@ -41,27 +41,52 @@ jobs:
       - name: Create release with dmg + zip assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT_SHA: ${{ github.sha }}
         run: |
-          TAG="build-${{ github.run_number }}-$(echo ${{ github.sha }} | cut -c1-7)"
+          TAG="build-${{ github.run_number }}-$(echo $COMMIT_SHA | cut -c1-7)"
+          cat > /tmp/release-notes.md <<'EOF'
+          > [!IMPORTANT]
+          > ## 🛑 Read this before installing
+          >
+          > This .dmg is **unsigned** (no Apple Developer ID). On macOS Sonoma / Sequoia / Tahoe, opening it shows: *"Electron Audio Recorder.app is damaged and can't be opened. You should move it to the Trash."*
+          >
+          > **Right-click → Open does NOT bypass this on Sequoia anymore.** You must clear the quarantine flag from Terminal first — see below.
+
+          ## ✅ Install (do this first)
+
+          Open **Terminal** and paste the matching command for your Mac (Apple Silicon vs Intel), then press Return:
+
+          **Apple Silicon (M1 / M2 / M3 / M4):**
+          ```bash
+          xattr -d com.apple.quarantine ~/Downloads/Electron.Audio.Recorder-1.0.0-arm64.dmg
+          ```
+
+          **Intel:**
+          ```bash
+          xattr -d com.apple.quarantine ~/Downloads/Electron.Audio.Recorder-1.0.0.dmg
+          ```
+
+          Then double-click the .dmg, drag the app to **Applications**, and open it normally. The "damaged" dialog will not appear.
+
+          ## 🩹 Already saw the "damaged" error?
+
+          If you already moved the .app into `/Applications`, fix it in place:
+
+          ```bash
+          xattr -cr "/Applications/Electron Audio Recorder.app"
+          ```
+
+          Then open the app from Launchpad / Applications.
+
+          ## 🎙️ First launch
+
+          The first time you press **Start Recording**, macOS asks for **Screen Recording** permission — grant it under *System Settings → Privacy & Security → Screen Recording*. You'll also need to tick **"Share audio"** in the screen-share picker. This is how Chromium captures system-audio loopback on macOS; we cannot work around it.
+
+          ---
+          EOF
+          echo "" >> /tmp/release-notes.md
+          echo "Auto-built unsigned x64 + arm64 from commit $COMMIT_SHA." >> /tmp/release-notes.md
           gh release create "$TAG" \
             --title "Build #${{ github.run_number }}" \
-            --notes "Auto-built unsigned macOS .dmg + .zip from commit ${{ github.sha }}.
-
-          ## ⚠️ Install instructions (read first!)
-
-          This build is **unsigned**. macOS Sonoma/Sequoia will show *\"Electron Audio Recorder.app is damaged and can't be opened\"* and refuse to launch it. Right-click → Open no longer bypasses this on Sequoia.
-
-          **Before installing**, open Terminal and run:
-
-          \`\`\`
-          xattr -d com.apple.quarantine ~/Downloads/Electron.Audio.Recorder-1.0.0-arm64.dmg
-          \`\`\`
-
-          (or use the x64 filename for Intel Macs.) Then double-click the .dmg, drag the app into Applications, and open it normally.
-
-          If you already copied the app to /Applications and saw the error, run instead:
-
-          \`\`\`
-          xattr -cr \"/Applications/Electron Audio Recorder.app\"
-          \`\`\`" \
+            --notes-file /tmp/release-notes.md \
             dist/*.dmg dist/*.zip
