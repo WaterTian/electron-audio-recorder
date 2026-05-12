@@ -38,7 +38,8 @@
       "extendInfo": {
         "NSMicrophoneUsageDescription": "Required by Chromium to capture system audio via screen sharing.",
         "NSCameraUsageDescription": "Required by Chromium for getDisplayMedia even when only audio is captured.",
-        "NSScreenCaptureUsageDescription": "Required to capture system audio via the macOS screen-share dialog."
+        "NSScreenCaptureUsageDescription": "Required to capture system audio via the macOS screen-share dialog.",
+        "NSAudioCaptureUsageDescription": "Required by macOS ScreenCaptureKit to capture system audio (loopback) on macOS 14.4 and later."
       }
     }
   }
