@@ -1,0 +1,53 @@
+name: Deploy web preview to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assemble static site
+        run: |
+          set -e
+          mkdir -p _site/samples
+          # shared renderer assets
+          cp src/renderer/player.js _site/
+          cp src/renderer/library.js _site/
+          cp src/renderer/recording.js _site/
+          cp src/renderer/app.js _site/
+          cp src/renderer/styles.css _site/
+          # web-specific overrides + mock api + html
+          cp web/index.html _site/
+          cp web/mock-api.js _site/
+          cp web/web.css _site/
+          cp web/.nojekyll _site/
+          # generate two short Opus/WebM samples with ffmpeg (ships on ubuntu-latest)
+          ffmpeg -y -hide_banner -loglevel error -f lavfi -i "sine=frequency=440:duration=12" -c:a libopus -b:a 64k _site/samples/01.webm
+          ffmpeg -y -hide_banner -loglevel error -f lavfi -i "sine=frequency=523:duration=8"  -c:a libopus -b:a 64k _site/samples/02.webm
+          ls -la _site _site/samples
+
+      - uses: actions/configure-pages@v4
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
