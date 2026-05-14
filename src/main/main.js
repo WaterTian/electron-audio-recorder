@@ -194,17 +194,25 @@ function createWindow() {
 }
 
 function setupDisplayMediaHandler() {
-  session.defaultSession.setDisplayMediaRequestHandler((_request, callback) => {
-    desktopCapturer
-      .getSources({ types: ['screen'] })
-      .then((sources) => {
-        callback({ video: sources[0], audio: 'loopback' });
-      })
-      .catch((err) => {
-        console.error('desktopCapturer error:', err);
-        callback({});
-      });
-  });
+  session.defaultSession.setDisplayMediaRequestHandler(
+    (_request, callback) => {
+      desktopCapturer
+        .getSources({ types: ['screen'] })
+        .then((sources) => {
+          if (!sources || sources.length === 0) {
+            console.error('desktopCapturer: 0 sources (TCC denied?)');
+            callback({});
+            return;
+          }
+          callback({ video: sources[0], audio: 'loopback' });
+        })
+        .catch((err) => {
+          console.error('desktopCapturer error:', err.name, err.message);
+          callback({});
+        });
+    },
+    { useSystemPicker: true }
+  );
 }
 
 app.whenReady().then(() => {
