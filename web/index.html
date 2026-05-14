@@ -62,10 +62,18 @@
             <span class="status-text">Idle</span>
           </div>
           <div class="timer" aria-live="polite">00:00</div>
+          <div class="source-toggle" role="radiogroup" aria-label="Audio source">
+            <label class="source-opt"><input type="radio" name="source" value="system" checked />System</label>
+            <label class="source-opt"><input type="radio" name="source" value="mic" />Microphone</label>
+          </div>
           <button class="record-btn" type="button">Start Recording</button>
-          <p class="hint">
+          <p class="hint" data-source="system">
             Web demo &mdash; recording is disabled here. Install the Mac app to capture system audio
             (loopback). Click <strong>Library</strong> to preview the player.
+          </p>
+          <p class="hint" data-source="mic" hidden>
+            Web demo &mdash; recording is disabled here. Install the Mac app to capture microphone
+            audio. Click <strong>Library</strong> to preview the player.
           </p>
           <p class="error" hidden></p>
         </div>
