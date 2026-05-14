@@ -60,11 +60,20 @@
             <span class="status-text">Idle</span>
           </div>
           <div class="timer" aria-live="polite">00:00</div>
+          <div class="source-toggle" role="radiogroup" aria-label="Audio source">
+            <label class="source-opt"><input type="radio" name="source" value="system" checked />System</label>
+            <label class="source-opt"><input type="radio" name="source" value="mic" />Microphone</label>
+          </div>
           <button class="record-btn" type="button">Start Recording</button>
-          <p class="hint">
+          <p class="hint" data-source="system">
             Captures system audio (loopback). The first time you record, macOS
             asks for Screen Recording permission &mdash; grant it once, then
             recordings start instantly.
+          </p>
+          <p class="hint" data-source="mic" hidden>
+            Captures your microphone. The first time you record, macOS asks for
+            Microphone permission &mdash; grant it once, then recordings start
+            instantly.
           </p>
           <p class="error" hidden></p>
         </div>

@@ -18,14 +18,21 @@
 
       this.elements = {
         root: node,
+        card: node.querySelector('.recorder-card'),
         dot: node.querySelector('.dot'),
         statusText: node.querySelector('.status-text'),
         timer: node.querySelector('.timer'),
         button: node.querySelector('.record-btn'),
+        sourceRadios: node.querySelectorAll('input[name="source"]'),
+        hints: node.querySelectorAll('.hint[data-source]'),
         error: node.querySelector('.error'),
       };
 
       this.elements.button.addEventListener('click', () => this.toggle());
+      this.elements.sourceRadios.forEach((r) =>
+        r.addEventListener('change', () => this.renderHint())
+      );
+      this.renderHint();
       this.render();
     },
 
@@ -49,8 +56,9 @@
     },
 
     render() {
-      const { dot, statusText, button, timer } = this.elements;
+      const { dot, statusText, button, timer, card } = this.elements;
       dot.dataset.state = this.state;
+      card.dataset.state = this.state;
       switch (this.state) {
         case 'recording':
           statusText.textContent = 'Recording';
@@ -73,6 +81,18 @@
       }
     },
 
+    renderHint() {
+      const source = this.selectedSource();
+      this.elements.hints.forEach((h) => {
+        h.hidden = h.dataset.source !== source;
+      });
+    },
+
+    selectedSource() {
+      const checked = Array.from(this.elements.sourceRadios).find((r) => r.checked);
+      return checked ? checked.value : 'system';
+    },
+
     async toggle() {
       this.showError('');
       if (this.state === 'recording') {
@@ -83,25 +103,32 @@
     },
 
     async start() {
+      const source = this.selectedSource();
       try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({
-          video: true,
-          audio: true,
-        });
-
-        const audioTracks = stream.getAudioTracks();
-        if (!audioTracks.length) {
-          stream.getTracks().forEach((t) => t.stop());
-          throw new Error(
-            'No system audio captured. In the screen-share dialog, enable "Share audio" and choose to share your entire screen.'
-          );
+        let stream, audioTracks;
+        if (source === 'mic') {
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          audioTracks = stream.getAudioTracks();
+          if (!audioTracks.length) {
+            stream.getTracks().forEach((t) => t.stop());
+            throw new Error('No microphone audio captured.');
+          }
+        } else {
+          stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+          audioTracks = stream.getAudioTracks();
+          if (!audioTracks.length) {
+            stream.getTracks().forEach((t) => t.stop());
+            throw new Error(
+              'No system audio captured. In the screen-share dialog, enable "Share audio" and choose to share your entire screen.'
+            );
+          }
+          stream.getVideoTracks().forEach((t) => t.stop());
         }
-
-        stream.getVideoTracks().forEach((t) => t.stop());
 
         const audioOnly = new MediaStream(audioTracks);
         this.mediaStream = stream;
         this.audioOnlyStream = audioOnly;
+        this.activeSource = source;
 
         const mimeType = 'audio/webm;codecs=opus';
         if (!window.MediaRecorder || !MediaRecorder.isTypeSupported(mimeType)) {
@@ -136,7 +163,11 @@
         this.state = 'idle';
         this.render();
         if (err && err.name === 'NotAllowedError') {
-          this.showError('Permission denied. You must allow screen sharing to capture system audio.');
+          this.showError(
+            source === 'mic'
+              ? 'Permission denied. Allow Microphone access for this app in System Settings → Privacy & Security → Microphone.'
+              : 'Permission denied. You must allow screen sharing to capture system audio.'
+          );
         } else {
           this.showError(err.message || String(err));
         }
